@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class Article(models.Model):
@@ -10,7 +11,7 @@ class Article(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     # Relationships
-    author = models.ForeignKey('User',
+    author = models.ForeignKey(settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='articles'
     )
