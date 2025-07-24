@@ -13,10 +13,12 @@ from ..serializers.user_serializers import (
     UserUpdateSerializer,
     ProfileSerializer
 )
+from ..throttles import LoginRateThrottle, RegisterRateThrottle
 
 
 class UserRegistrationView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [RegisterRateThrottle]
     
     def post(self, request):
         user_data = request.data.get('user', {})
@@ -32,6 +34,7 @@ class UserRegistrationView(APIView):
 
 class UserLoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
     
     def post(self, request):
         user_data = request.data.get('user', {})
