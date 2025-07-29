@@ -1,5 +1,5 @@
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -74,7 +74,35 @@ class ProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     http_method_names = ['get']
 
+    def get_permissions(self):
+        if self.action in ['follow']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [AllowAny]
+        return [permission() for permission in permission_classes]
+
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        serializer = self.get_serializer(instance, context={'request': request})
         return Response({'profile': serializer.data})
+    
+    @action(detail=True, methods=['post', 'delete'], url_path='follow', permission_classes=[IsAuthenticated])
+    def follow(self, request, username=None):
+        profile = self.get_object()
+        user = request.user
+        
+        if user == profile:
+            return Response(
+                {'error': 'You cannot follow yourself'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if request.method == 'POST':
+            user.follow(profile)
+            serializer = ProfileSerializer(profile, context={'request': request})
+            return Response({'profile': serializer.data})
+            
+        elif request.method == 'DELETE':
+            user.unfollow(profile)
+            serializer = ProfileSerializer(profile, context={'request': request})
+            return Response({'profile': serializer.data})

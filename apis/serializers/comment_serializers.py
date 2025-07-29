@@ -21,3 +21,8 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ['id', 'body', 'createdAt', 'updatedAt', 'author']
         read_only_fields = ['id', 'createdAt', 'updatedAt', 'author']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'context' in kwargs:
+            self.fields['author'].context = kwargs['context']

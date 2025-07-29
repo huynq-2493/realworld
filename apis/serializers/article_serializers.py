@@ -2,12 +2,7 @@ from rest_framework import serializers
 from ..models.article import Article
 from ..models.user import User
 from ..models.tag import Tag
-
-
-class ProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['username', 'bio', 'image']
+from .user_serializers import ProfileSerializer
 
 
 class ArticleSerializer(serializers.ModelSerializer):
@@ -36,6 +31,11 @@ class ArticleSerializer(serializers.ModelSerializer):
     
     def get_favoritesCount(self, obj):
         return obj.favorites_count
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'context' in kwargs:
+            self.fields['author'].context = kwargs['context']
 
 
 class ArticleListSerializer(ArticleSerializer):
