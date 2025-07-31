@@ -101,7 +101,15 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    following = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ['username', 'bio', 'image']
+        fields = ['username', 'bio', 'image', 'following']
+    
+    def get_following(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return request.user.is_following(obj)
+        return False
 

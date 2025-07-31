@@ -70,13 +70,16 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def feed(self, request):
-        queryset = Article.objects.none()
+        following_users = request.user.following.all()
+        queryset = Article.objects.filter(author__in=following_users).select_related(
+            'author').prefetch_related('tags').order_by('-created_at')
+        
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
+            serializer = self.get_serializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response({
             'articles': serializer.data,
             'articlesCount': queryset.count()
@@ -108,17 +111,42 @@ class ArticleViewSet(viewsets.ModelViewSet):
         if request.method == 'GET':
             comments = Comment.objects.filter(
                 article=article).select_related('author')
-            serializer = CommentSerializer(comments, many=True)
+            serializer = CommentSerializer(comments, many=True, context={'request': request})
             return Response({'comments': serializer.data})
 
         elif request.method == 'POST':
+            if not request.user.is_authenticated:
+                return Response(
+                    {'error': 'Authentication required'}, 
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
             comment_data = request.data.get('comment', {})
             serializer = CommentCreateSerializer(data=comment_data)
 
             if serializer.is_valid():
-                author = User.objects.first()
-                comment = serializer.save(article=article, author=author)
-                response_serializer = CommentSerializer(comment)
+                comment = serializer.save(article=article, author=request.user)
+                response_serializer = CommentSerializer(comment, context={'request': request})
                 return Response({'comment': response_serializer.data}, status=status.HTTP_201_CREATED)
 
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['delete'], url_path='comments/(?P<comment_id>[^/.]+)', permission_classes=[IsAuthenticated])
+    def delete_comment(self, request, slug=None, comment_id=None):
+        article = self.get_object()
+        try:
+            comment = Comment.objects.get(id=comment_id, article=article)
+        except Comment.DoesNotExist:
+            return Response(
+                {'error': 'Comment not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if comment.author != request.user:
+            return Response(
+                {'error': 'You can only delete your own comments'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
