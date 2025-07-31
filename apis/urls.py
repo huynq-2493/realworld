@@ -3,6 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import ArticleViewSet, TagViewSet
 from .views.user_views import ProfileViewSet, UserRegistrationView, UserLoginView, CurrentUserView
 
+app_name = 'apis'
+
 router = DefaultRouter()
 router.register(r'articles', ArticleViewSet)
 router.register(r'tags', TagViewSet)
