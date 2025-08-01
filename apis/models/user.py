@@ -16,6 +16,14 @@ class User(AbstractUser):
     
     objects = UserManager()
 
+    class Meta:
+        verbose_name = "User"
+        verbose_name_plural = "Users"
+        indexes = [
+            models.Index(fields=['username']),
+            models.Index(fields=['email']),
+        ]
+
     def __str__(self):
         return self.username
     
@@ -29,3 +37,11 @@ class User(AbstractUser):
     def unfollow(self, user):
         if self.is_following(user):
             self.following.remove(user)
+    
+    @property
+    def followers_count(self) -> int:
+        return self.followers.count()
+    
+    @property
+    def following_count(self) -> int:
+        return self.following.count()
